@@ -132,6 +132,7 @@ type DB struct {
 	data     *[maxMapSize]byte
 	datasz   int
 	filesz   int // current on disk file size
+	// 为什么需要有两个meta?
 	meta0    *meta
 	meta1    *meta
 	pageSize int
@@ -775,6 +776,8 @@ func (db *DB) View(fn func(*Tx) error) error {
 		return err
 	}
 
+	// 为什么没有commit操作呢
+
 	return t.Rollback()
 }
 
@@ -823,62 +826,6 @@ func (db *DB) Batch(fn func(*Tx) error) error {
 type call struct {
 	fn  func(*Tx) error
 	err chan<- error
-}
-
-type batch struct {
-	db    *DB
-	timer *time.Timer
-	start sync.Once
-	calls []call
-}
-
-// trigger runs the batch if it hasn't already been run.
-func (b *batch) trigger() {
-	b.start.Do(b.run)
-}
-
-// run performs the transactions in the batch and communicates results
-// back to DB.Batch.
-func (b *batch) run() {
-	b.db.batchMu.Lock()
-	b.timer.Stop()
-	// Make sure no new work is added to this batch, but don't break
-	// other batches.
-	if b.db.batch == b {
-		b.db.batch = nil
-	}
-	b.db.batchMu.Unlock()
-
-retry:
-	for len(b.calls) > 0 {
-		var failIdx = -1
-		err := b.db.Update(func(tx *Tx) error {
-			for i, c := range b.calls {
-				if err := safelyCall(c.fn, tx); err != nil {
-					failIdx = i
-					return err
-				}
-			}
-			return nil
-		})
-
-		if failIdx >= 0 {
-			// take the failing transaction out of the batch. it's
-			// safe to shorten b.calls here because db.batch no longer
-			// points to us, and we hold the mutex anyway.
-			c := b.calls[failIdx]
-			b.calls[failIdx], b.calls = b.calls[len(b.calls)-1], b.calls[:len(b.calls)-1]
-			// tell the submitter re-run it solo, continue with the rest of the batch
-			c.err <- trySolo
-			continue retry
-		}
-
-		// pass success, or bolt internal errors, to all callers
-		for _, c := range b.calls {
-			c.err <- err
-		}
-		break retry
-	}
 }
 
 // trySolo is a special sentinel error value used for signaling that a
@@ -1065,107 +1012,6 @@ func (db *DB) freepages() []pgid {
 		}
 	}
 	return fids
-}
-
-// Options represents the options that can be set when opening a database.
-type Options struct {
-	// Timeout is the amount of time to wait to obtain a file lock.
-	// When set to zero it will wait indefinitely. This option is only
-	// available on Darwin and Linux.
-	Timeout time.Duration
-
-	// Sets the DB.NoGrowSync flag before memory mapping the file.
-	NoGrowSync bool
-
-	// Do not sync freelist to disk. This improves the database write performance
-	// under normal operation, but requires a full database re-sync during recovery.
-	NoFreelistSync bool
-
-	// FreelistType sets the backend freelist type. There are two options. Array which is simple but endures
-	// dramatic performance degradation if database is large and framentation in freelist is common.
-	// The alternative one is using hashmap, it is faster in almost all circumstances
-	// but it doesn't guarantee that it offers the smallest page id available. In normal case it is safe.
-	// The default type is array
-	FreelistType FreelistType
-
-	// Open database in read-only mode. Uses flock(..., LOCK_SH |LOCK_NB) to
-	// grab a shared lock (UNIX).
-	ReadOnly bool
-
-	// Sets the DB.MmapFlags flag before memory mapping the file.
-	MmapFlags int
-
-	// InitialMmapSize is the initial mmap size of the database
-	// in bytes. Read transactions won't block write transaction
-	// if the InitialMmapSize is large enough to hold database mmap
-	// size. (See DB.Begin for more information)
-	//
-	// If <=0, the initial map size is 0.
-	// If initialMmapSize is smaller than the previous database size,
-	// it takes no effect.
-	InitialMmapSize int
-
-	// PageSize overrides the default OS page size.
-	PageSize int
-
-	// NoSync sets the initial value of DB.NoSync. Normally this can just be
-	// set directly on the DB itself when returned from Open(), but this option
-	// is useful in APIs which expose Options but not the underlying DB.
-	NoSync bool
-
-	// OpenFile is used to open files. It defaults to os.OpenFile. This option
-	// is useful for writing hermetic tests.
-	OpenFile func(string, int, os.FileMode) (*os.File, error)
-
-	// Mlock locks database file in memory when set to true.
-	// It prevents potential page faults, however
-	// used memory can't be reclaimed. (UNIX only)
-	Mlock bool
-}
-
-// DefaultOptions represent the options used if nil options are passed into Open().
-// No timeout is used which will cause Bolt to wait indefinitely for a lock.
-var DefaultOptions = &Options{
-	Timeout:      0,
-	NoGrowSync:   false,
-	FreelistType: FreelistArrayType,
-}
-
-// Stats represents statistics about the database.
-type Stats struct {
-	// Freelist stats
-	FreePageN     int // total number of free pages on the freelist
-	PendingPageN  int // total number of pending pages on the freelist
-	FreeAlloc     int // total bytes allocated in free pages
-	FreelistInuse int // total bytes used by the freelist
-
-	// Transaction stats
-	TxN     int // total number of started read transactions
-	OpenTxN int // number of currently open read transactions
-
-	TxStats TxStats // global, ongoing stats.
-}
-
-// Sub calculates and returns the difference between two sets of database stats.
-// This is useful when obtaining stats at two different points and time and
-// you need the performance counters that occurred within that time span.
-func (s *Stats) Sub(other *Stats) Stats {
-	if other == nil {
-		return *s
-	}
-	var diff Stats
-	diff.FreePageN = s.FreePageN
-	diff.PendingPageN = s.PendingPageN
-	diff.FreeAlloc = s.FreeAlloc
-	diff.FreelistInuse = s.FreelistInuse
-	diff.TxN = s.TxN - other.TxN
-	diff.TxStats = s.TxStats.Sub(&other.TxStats)
-	return diff
-}
-
-type Info struct {
-	Data     uintptr
-	PageSize int
 }
 
 // _assert will panic with a given formatted message if the given condition is false.
