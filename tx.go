@@ -22,11 +22,12 @@ type txid uint64
 // are using them. A long running read transaction can cause the database to
 // quickly grow.
 type Tx struct {
-	writable       bool
-	managed        bool
-	db             *DB
-	meta           *meta
-	root           Bucket
+	writable bool
+	managed  bool
+	db       *DB
+	meta     *meta
+	root     Bucket
+	// 此次事务生成的脏页，尚未写回磁盘
 	pages          map[pgid]*page
 	stats          TxStats
 	commitHandlers []func()
@@ -41,6 +42,7 @@ type Tx struct {
 }
 
 // init initializes the transaction.
+// init() 初始化事务
 func (tx *Tx) init(db *DB) {
 	tx.db = db
 	tx.pages = nil
@@ -97,6 +99,7 @@ func (tx *Tx) Stats() TxStats {
 // Bucket retrieves a bucket by name.
 // Returns nil if the bucket does not exist.
 // The bucket instance is only valid for the lifetime of the transaction.
+// Bucket() 根据名字查找bucket
 func (tx *Tx) Bucket(name []byte) *Bucket {
 	return tx.root.Bucket(name)
 }
@@ -605,6 +608,7 @@ func (tx *Tx) writeMeta() error {
 
 // page returns a reference to the page with a given id.
 // If page has been written to then a temporary buffered page is returned.
+// page() 返回给定pageId对应page的引用
 func (tx *Tx) page(id pgid) *page {
 	// Check the dirty pages first.
 	if tx.pages != nil {

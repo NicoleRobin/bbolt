@@ -28,9 +28,10 @@ const (
 type pgid uint64
 
 type page struct {
-	id       pgid
-	flags    uint16
-	count    uint16
+	id    pgid
+	flags uint16
+	count uint16
+	// 表示当前页是否有溢出，溢出多少页
 	overflow uint32
 }
 

@@ -241,6 +241,7 @@ func Open(path string, mode os.FileMode, options *Options) (*DB, error) {
 	}
 
 	// Initialize the database if it doesn't exist.
+	// 初始化数据库
 	if info, err := db.file.Stat(); err != nil {
 		_ = db.close()
 		return nil, err
@@ -253,6 +254,7 @@ func Open(path string, mode os.FileMode, options *Options) (*DB, error) {
 		}
 	} else {
 		// Read the first meta page to determine the page size.
+		// 读取meta page
 		var buf [0x1000]byte
 		// If we can't read the page size, but can read a page, assume
 		// it's the same as the OS or one given -- since that's how the
@@ -274,6 +276,7 @@ func Open(path string, mode os.FileMode, options *Options) (*DB, error) {
 	}
 
 	// Initialize page pool.
+	// 初始化page pool
 	db.pagePool = sync.Pool{
 		New: func() interface{} {
 			return make([]byte, db.pageSize)
@@ -313,6 +316,7 @@ func Open(path string, mode os.FileMode, options *Options) (*DB, error) {
 // by scanning the DB if it is not synced. It assumes there are no
 // concurrent accesses being made to the freelist.
 func (db *DB) loadFreelist() {
+	// 使用sync.Once，保证只执行一次
 	db.freelistLoad.Do(func() {
 		db.freelist = newFreelist(db.FreelistType)
 		if !db.hasSyncedFreelist() {
@@ -332,6 +336,7 @@ func (db *DB) hasSyncedFreelist() bool {
 
 // mmap opens the underlying memory-mapped file and initializes the meta references.
 // minsz is the minimum size that the new mmap can be.
+// 使用mmap将数据库文件映射到内容
 func (db *DB) mmap(minsz int) error {
 	db.mmaplock.Lock()
 	defer db.mmaplock.Unlock()
@@ -584,6 +589,7 @@ func (db *DB) close() error {
 //
 // IMPORTANT: You must close read-only transactions after you are finished or
 // else the database will not reclaim old pages.
+// 开启一个事务，参数控制是否可写
 func (db *DB) Begin(writable bool) (*Tx, error) {
 	if writable {
 		return db.beginRWTx()
@@ -591,6 +597,7 @@ func (db *DB) Begin(writable bool) (*Tx, error) {
 	return db.beginTx()
 }
 
+// beginTx() 开启一个只读事务，在该事务中只能做读取操作
 func (db *DB) beginTx() (*Tx, error) {
 	// Lock the meta pages while we initialize the transaction. We obtain
 	// the meta lock before the mmap lock because that's the order that the
@@ -629,6 +636,7 @@ func (db *DB) beginTx() (*Tx, error) {
 	return t, nil
 }
 
+// 开启一个可写事务
 func (db *DB) beginRWTx() (*Tx, error) {
 	// If the database was opened with Options.ReadOnly, return an error.
 	if db.readOnly {
@@ -874,6 +882,9 @@ func (db *DB) Info() *Info {
 }
 
 // page retrieves a page reference from the mmap based on the current page size.
+// page() 根据pageId，并基于当前pageSize从mmap中查找page，pageId是整数，其实是将整个
+// 数据库文件切割成大小为pageSize的块，每一块就是一个page，每一块的下标（从0开始）就是pageId
+// 所以boltdb的数据文件的大小必定是pageSize的倍数，linux下默认是4096的倍数
 func (db *DB) page(id pgid) *page {
 	pos := id * pgid(db.pageSize)
 	return (*page)(unsafe.Pointer(&db.data[pos]))
@@ -885,6 +896,7 @@ func (db *DB) pageInBuffer(b []byte, id pgid) *page {
 }
 
 // meta retrieves the current meta page reference.
+// meta() 从当前meta page中查询meta引用
 func (db *DB) meta() *meta {
 	// We have to return the meta with the highest txid which doesn't fail
 	// validation. Otherwise, we can cause errors when in fact the database is
