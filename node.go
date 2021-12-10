@@ -8,6 +8,7 @@ import (
 )
 
 // node represents an in-memory, deserialized page.
+// node 代表一个仍在内存尚未被持久化到磁盘的page
 type node struct {
 	bucket     *Bucket
 	isLeaf     bool
@@ -37,6 +38,7 @@ func (n *node) minKeys() int {
 }
 
 // size returns the size of the node after serialization.
+// size() 返回node序列化后的size
 func (n *node) size() int {
 	sz, elsz := pageHeaderSize, n.pageElementSize()
 	for i := 0; i < len(n.inodes); i++ {
@@ -49,6 +51,7 @@ func (n *node) size() int {
 // sizeLessThan returns true if the node is less than a given size.
 // This is an optimization to avoid calculating a large node when we only need
 // to know if it fits inside a certain page size.
+// sizeLessThan() 返回true如果node小于给定的size
 func (n *node) sizeLessThan(v uintptr) bool {
 	sz, elsz := pageHeaderSize, n.pageElementSize()
 	for i := 0; i < len(n.inodes); i++ {
@@ -62,6 +65,7 @@ func (n *node) sizeLessThan(v uintptr) bool {
 }
 
 // pageElementSize returns the size of each page element based on the type of node.
+// pageElementSize() 根据不同的类型返回每个page element的大小，分为branch和leaf
 func (n *node) pageElementSize() uintptr {
 	if n.isLeaf {
 		return leafPageElementSize
@@ -580,23 +584,3 @@ func (n *node) dump() {
 	warn("")
 }
 */
-
-type nodes []*node
-
-func (s nodes) Len() int      { return len(s) }
-func (s nodes) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
-func (s nodes) Less(i, j int) bool {
-	return bytes.Compare(s[i].inodes[0].key, s[j].inodes[0].key) == -1
-}
-
-// inode represents an internal node inside of a node.
-// It can be used to point to elements in a page or point
-// to an element which hasn't been added to a page yet.
-type inode struct {
-	flags uint32
-	pgid  pgid
-	key   []byte
-	value []byte
-}
-
-type inodes []inode

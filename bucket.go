@@ -122,6 +122,7 @@ func (b *Bucket) Bucket(name []byte) *Bucket {
 
 // Helper method that re-interprets a sub-bucket value
 // from a parent into a Bucket
+//
 func (b *Bucket) openBucket(value []byte) *Bucket {
 	var child = newBucket(b.tx)
 
@@ -279,6 +280,7 @@ func (b *Bucket) Get(key []byte) []byte {
 // If the key exist then its previous value will be overwritten.
 // Supplied value must remain valid for the life of the transaction.
 // Returns an error if the bucket was created from a read-only transaction, if the key is blank, if the key is too large, or if the value is too large.
+// Put() 在该bucket中设置key的值为value
 func (b *Bucket) Put(key []byte, value []byte) error {
 	if b.tx.db == nil {
 		return ErrTxClosed

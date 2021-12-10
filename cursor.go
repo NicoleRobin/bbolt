@@ -152,6 +152,7 @@ func (c *Cursor) Delete() error {
 
 // seek moves the cursor to a given key and returns it.
 // If the key does not exist then the next key is used.
+// seek() 移动cursor到指定的key并返回它
 func (c *Cursor) seek(seek []byte) (key []byte, value []byte, flags uint32) {
 	_assert(c.bucket.tx.db != nil, "tx closed")
 
@@ -245,6 +246,7 @@ func (c *Cursor) next() (key []byte, value []byte, flags uint32) {
 }
 
 // search recursively performs a binary search against a given page/node until it finds a given key.
+// search() 递归的对给定page/node执行二分搜索，直到找到给定的key
 func (c *Cursor) search(key []byte, pgid pgid) {
 	p, n := c.bucket.pageNode(pgid)
 	if p != nil && (p.flags&(branchPageFlag|leafPageFlag)) == 0 {
@@ -310,6 +312,7 @@ func (c *Cursor) searchPage(key []byte, p *page) {
 }
 
 // nsearch searches the leaf node on the top of the stack for a key.
+// nsearch() 在栈的顶端leaf node上搜索指定key
 func (c *Cursor) nsearch(key []byte) {
 	e := &c.stack[len(c.stack)-1]
 	p, n := e.page, e.node
@@ -371,27 +374,4 @@ func (c *Cursor) node() *node {
 	}
 	_assert(n.isLeaf, "expected leaf node")
 	return n
-}
-
-// elemRef represents a reference to an element on a given page/node.
-type elemRef struct {
-	page  *page
-	node  *node
-	index int
-}
-
-// isLeaf returns whether the ref is pointing at a leaf page/node.
-func (r *elemRef) isLeaf() bool {
-	if r.node != nil {
-		return r.node.isLeaf
-	}
-	return (r.page.flags & leafPageFlag) != 0
-}
-
-// count returns the number of inodes or page elements.
-func (r *elemRef) count() int {
-	if r.node != nil {
-		return len(r.node.inodes)
-	}
-	return int(r.page.count)
 }

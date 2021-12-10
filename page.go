@@ -50,17 +50,20 @@ func (p *page) typ() string {
 }
 
 // meta returns a pointer to the metadata section of the page.
+// meta() 返回指向page中的meta段的指针
 func (p *page) meta() *meta {
 	return (*meta)(unsafeAdd(unsafe.Pointer(p), unsafe.Sizeof(*p)))
 }
 
 // leafPageElement retrieves the leaf node by index
+// leafPageElement() 根据index查找leafPageElement
 func (p *page) leafPageElement(index uint16) *leafPageElement {
 	return (*leafPageElement)(unsafeIndex(unsafe.Pointer(p), unsafe.Sizeof(*p),
 		leafPageElementSize, int(index)))
 }
 
 // leafPageElements retrieves a list of leaf nodes.
+// leafPageElements() 查询page的所有leaf node
 func (p *page) leafPageElements() []leafPageElement {
 	if p.count == 0 {
 		return nil
@@ -72,12 +75,14 @@ func (p *page) leafPageElements() []leafPageElement {
 }
 
 // branchPageElement retrieves the branch node by index
+// branchPageElement() 根据index查找branchPageElement
 func (p *page) branchPageElement(index uint16) *branchPageElement {
 	return (*branchPageElement)(unsafeIndex(unsafe.Pointer(p), unsafe.Sizeof(*p),
-		unsafe.Sizeof(branchPageElement{}), int(index)))
+		branchPageElementSize, int(index)))
 }
 
 // branchPageElements retrieves a list of branch nodes.
+// branchPageElements() 查询page的所有branch node
 func (p *page) branchPageElements() []branchPageElement {
 	if p.count == 0 {
 		return nil
@@ -94,72 +99,13 @@ func (p *page) hexdump(n int) {
 	fmt.Fprintf(os.Stderr, "%x\n", buf)
 }
 
-type pages []*page
-
-func (s pages) Len() int           { return len(s) }
-func (s pages) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
-func (s pages) Less(i, j int) bool { return s[i].id < s[j].id }
-
-// branchPageElement represents a node on a branch page.
-type branchPageElement struct {
-	pos   uint32
-	ksize uint32
-	pgid  pgid
-}
-
-// key returns a byte slice of the node key.
-func (n *branchPageElement) key() []byte {
-	return unsafeByteSlice(unsafe.Pointer(n), 0, int(n.pos), int(n.pos)+int(n.ksize))
-}
-
-// leafPageElement represents a node on a leaf page.
-type leafPageElement struct {
-	flags uint32
-	pos   uint32
-	ksize uint32
-	vsize uint32
-}
-
-// key returns a byte slice of the node key.
-func (n *leafPageElement) key() []byte {
-	i := int(n.pos)
-	j := i + int(n.ksize)
-	return unsafeByteSlice(unsafe.Pointer(n), 0, i, j)
-}
-
-// value returns a byte slice of the node value.
-func (n *leafPageElement) value() []byte {
-	i := int(n.pos) + int(n.ksize)
-	j := i + int(n.vsize)
-	return unsafeByteSlice(unsafe.Pointer(n), 0, i, j)
-}
-
 // PageInfo represents human readable information about a page.
+// PageInfo 表示人类可读的page相关信息
 type PageInfo struct {
 	ID            int
 	Type          string
 	Count         int
 	OverflowCount int
-}
-
-type pgids []pgid
-
-func (s pgids) Len() int           { return len(s) }
-func (s pgids) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
-func (s pgids) Less(i, j int) bool { return s[i] < s[j] }
-
-// merge returns the sorted union of a and b.
-func (a pgids) merge(b pgids) pgids {
-	// Return the opposite slice if one is nil.
-	if len(a) == 0 {
-		return b
-	}
-	if len(b) == 0 {
-		return a
-	}
-	merged := make(pgids, len(a)+len(b))
-	mergepgids(merged, a, b)
-	return merged
 }
 
 // mergepgids copies the sorted union of a and b into dst.
