@@ -316,6 +316,7 @@ func Open(path string, mode os.FileMode, options *Options) (*DB, error) {
 // by scanning the DB if it is not synced. It assumes there are no
 // concurrent accesses being made to the freelist.
 func (db *DB) loadFreelist() {
+	log.Printf("DB:loadFreelist()")
 	// 使用sync.Once，保证只执行一次
 	db.freelistLoad.Do(func() {
 		db.freelist = newFreelist(db.FreelistType)
@@ -338,6 +339,7 @@ func (db *DB) hasSyncedFreelist() bool {
 // minsz is the minimum size that the new mmap can be.
 // 使用mmap将数据库文件映射到内容
 func (db *DB) mmap(minsz int) error {
+	log.Printf("DB:mmap(), minsz:%d", minsz)
 	db.mmaplock.Lock()
 	defer db.mmaplock.Unlock()
 
@@ -400,6 +402,8 @@ func (db *DB) mmap(minsz int) error {
 	if err0 != nil && err1 != nil {
 		return err0
 	}
+	log.Printf("DB:mmap(), meta0:%p, meta0:%+v", db.meta0, db.meta0)
+	log.Printf("DB:mmap(), meta1:%p, meta1:%+v", db.meta1, db.meta1)
 
 	return nil
 }
@@ -475,6 +479,7 @@ func (db *DB) mrelock(fileSizeFrom, fileSizeTo int) error {
 
 // init creates a new database file and initializes its meta pages.
 func (db *DB) init() error {
+	log.Printf("DB:init()")
 	// Create two meta pages on a buffer.
 	buf := make([]byte, db.pageSize*4)
 	for i := 0; i < 2; i++ {
@@ -668,6 +673,7 @@ func (db *DB) beginRWTx() (*Tx, error) {
 
 // freePages releases any pages associated with closed read-only transactions.
 func (db *DB) freePages() {
+	log.Printf("DB:freePages()")
 	// Free all pending pages prior to earliest open transaction.
 	sort.Sort(txsById(db.txs))
 	minid := txid(0xFFFFFFFFFFFFFFFF)
@@ -893,12 +899,14 @@ func (db *DB) page(id pgid) *page {
 
 // pageInBuffer retrieves a page reference from a given byte array based on the current page size.
 func (db *DB) pageInBuffer(b []byte, id pgid) *page {
+	log.Printf("DB:pageInBuffer(), b:%s, id:%d", string(b), id)
 	return (*page)(unsafe.Pointer(&b[id*pgid(db.pageSize)]))
 }
 
 // meta retrieves the current meta page reference.
 // meta() 从当前meta page中查询meta引用
 func (db *DB) meta() *meta {
+	log.Printf("DB:meta()")
 	// We have to return the meta with the highest txid which doesn't fail
 	// validation. Otherwise, we can cause errors when in fact the database is
 	// in a consistent state. metaA is the one with the higher txid.
@@ -996,6 +1004,7 @@ func (db *DB) IsReadOnly() bool {
 }
 
 func (db *DB) freepages() []pgid {
+	log.Printf("DB:freepages()")
 	tx, err := db.beginTx()
 	defer func() {
 		err = tx.Rollback()

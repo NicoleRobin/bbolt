@@ -27,6 +27,7 @@ func unsafeByteSlice(base unsafe.Pointer, offset uintptr, i, j int) []byte {
 	// index 0.  However, the wiki never says that the address must be to
 	// the beginning of a C allocation (or even that malloc was used at
 	// all), so this is believed to be correct.
+	// 这里用到了go的slice表达式：https://golang.google.cn/ref/spec#Slice_expressions
 	return (*[maxAllocSize]byte)(unsafeAdd(base, offset))[i:j:j]
 }
 

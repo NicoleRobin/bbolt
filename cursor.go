@@ -341,7 +341,7 @@ func (c *Cursor) nsearch(key []byte) {
 	log.Printf("Cursor:nasearch(), inodes:%+v", inodes)
 	for index, _ := range inodes {
 		leafPageElem := p.leafPageElement(uint16(index))
-		log.Printf("Cursor:nsearch(), index:%d, leafPageElement:%p, leafPageElement:%+v", index, unsafe.Pointer(leafPageElem), leafPageElem)
+		log.Printf("Cursor:nsearch(), index:%d, leafPageElement:%p, leafPageElement:%+v, key:%p, value:%p", index, unsafe.Pointer(leafPageElem), leafPageElem, leafPageElem.key(), leafPageElem.value())
 	}
 	index := sort.Search(int(p.count), func(i int) bool {
 		log.Printf("sort:Search(), i:%d, inodes[%d].key():%s", i, i, string(inodes[i].key()))
