@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"sort"
+	"unsafe"
 )
 
 // Cursor represents an iterator that can traverse over all key/value pairs in a bucket in sorted order.
@@ -328,6 +329,7 @@ func (c *Cursor) nsearch(key []byte) {
 	// If we have a node then search its inodes.
 	if n != nil {
 		index := sort.Search(len(n.inodes), func(i int) bool {
+			log.Printf("sort:Search(), i:%d, n.inodes[%d].key:%s", i, i, string(n.inodes[i].key))
 			return bytes.Compare(n.inodes[i].key, key) != -1
 		})
 		e.index = index
@@ -337,7 +339,12 @@ func (c *Cursor) nsearch(key []byte) {
 	// If we have a page then search its leaf elements.
 	inodes := p.leafPageElements()
 	log.Printf("Cursor:nasearch(), inodes:%+v", inodes)
+	for index, _ := range inodes {
+		leafPageElem := p.leafPageElement(uint16(index))
+		log.Printf("Cursor:nsearch(), index:%d, leafPageElement:%p, leafPageElement:%+v", index, unsafe.Pointer(leafPageElem), leafPageElem)
+	}
 	index := sort.Search(int(p.count), func(i int) bool {
+		log.Printf("sort:Search(), i:%d, inodes[%d].key():%s", i, i, string(inodes[i].key()))
 		return bytes.Compare(inodes[i].key(), key) != -1
 	})
 	e.index = index

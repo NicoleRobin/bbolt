@@ -2,6 +2,7 @@ package bbolt
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"sort"
 	"unsafe"
@@ -58,6 +59,7 @@ func (p *page) meta() *meta {
 // leafPageElement retrieves the leaf node by index
 // leafPageElement() 根据index查找leafPageElement
 func (p *page) leafPageElement(index uint16) *leafPageElement {
+	log.Printf("page:leafPageElement(), p:%+v, p:%p, index:%d, leafPageElementSize:%d", p, p, index, leafPageElementSize)
 	return (*leafPageElement)(unsafeIndex(unsafe.Pointer(p), unsafe.Sizeof(*p),
 		leafPageElementSize, int(index)))
 }
@@ -65,11 +67,13 @@ func (p *page) leafPageElement(index uint16) *leafPageElement {
 // leafPageElements retrieves a list of leaf nodes.
 // leafPageElements() 查询page的所有leaf node
 func (p *page) leafPageElements() []leafPageElement {
+	log.Printf("page.leafPageElements(), p:%+v", p)
 	if p.count == 0 {
 		return nil
 	}
 	var elems []leafPageElement
 	data := unsafeAdd(unsafe.Pointer(p), unsafe.Sizeof(*p))
+	log.Printf("page.leafPageElements(), p:%p, unsafe.Pointer(p):%p, unsafe.Sizeof(*p):%d, data:%p", p, unsafe.Pointer(p), unsafe.Sizeof(*p), data)
 	unsafeSlice(unsafe.Pointer(&elems), data, int(p.count))
 	return elems
 }

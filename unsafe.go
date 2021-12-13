@@ -1,15 +1,18 @@
 package bbolt
 
 import (
+	"log"
 	"reflect"
 	"unsafe"
 )
 
 func unsafeAdd(base unsafe.Pointer, offset uintptr) unsafe.Pointer {
+	log.Printf("unsafeAdd(), base:%p, offset:%d", base, offset)
 	return unsafe.Pointer(uintptr(base) + offset)
 }
 
 func unsafeIndex(base unsafe.Pointer, offset uintptr, elemsz uintptr, n int) unsafe.Pointer {
+	log.Printf("unsafeIndex(), base:%p, offset:%d, elemsz:%d, n:%d", base, offset, elemsz, n)
 	return unsafe.Pointer(uintptr(base) + offset + uintptr(n)*elemsz)
 }
 
