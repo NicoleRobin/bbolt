@@ -3,6 +3,7 @@ package bbolt
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"sort"
 )
 
@@ -116,6 +117,7 @@ func (c *Cursor) Prev() (key []byte, value []byte) {
 // The returned key and value are only valid for the life of the transaction.
 // Seek() 使cursor移动到指定的key并返回key/value
 func (c *Cursor) Seek(seek []byte) (key []byte, value []byte) {
+	log.Printf("Cursor:Seek(), seek:%s", string(seek))
 	k, v, flags := c.seek(seek)
 
 	// If we ended up after the last element of a page then move to the next one.
@@ -154,6 +156,7 @@ func (c *Cursor) Delete() error {
 // If the key does not exist then the next key is used.
 // seek() 移动cursor到指定的key并返回它
 func (c *Cursor) seek(seek []byte) (key []byte, value []byte, flags uint32) {
+	log.Printf("Cursor:seek(), seek:%s", string(seek))
 	_assert(c.bucket.tx.db != nil, "tx closed")
 
 	// Start from root page/node and traverse to correct page.
@@ -248,7 +251,9 @@ func (c *Cursor) next() (key []byte, value []byte, flags uint32) {
 // search recursively performs a binary search against a given page/node until it finds a given key.
 // search() 递归的对给定page/node执行二分搜索，直到找到给定的key
 func (c *Cursor) search(key []byte, pgid pgid) {
+	log.Printf("Cursor:search(), key:%s", string(key))
 	p, n := c.bucket.pageNode(pgid)
+	log.Printf("Cursor:search(), p:%+v, n:%+v", p, n)
 	if p != nil && (p.flags&(branchPageFlag|leafPageFlag)) == 0 {
 		panic(fmt.Sprintf("invalid page type: %d: %x", p.id, p.flags))
 	}
@@ -269,6 +274,7 @@ func (c *Cursor) search(key []byte, pgid pgid) {
 }
 
 func (c *Cursor) searchNode(key []byte, n *node) {
+	log.Printf("Cursor:searchNode(), key:%s", string(key))
 	var exact bool
 	index := sort.Search(len(n.inodes), func(i int) bool {
 		// TODO(benbjohnson): Optimize this range search. It's a bit hacky right now.
@@ -289,6 +295,7 @@ func (c *Cursor) searchNode(key []byte, n *node) {
 }
 
 func (c *Cursor) searchPage(key []byte, p *page) {
+	log.Printf("Cursor:searchPage(), key:%s", string(key))
 	// Binary search for the correct range.
 	inodes := p.branchPageElements()
 
@@ -314,6 +321,7 @@ func (c *Cursor) searchPage(key []byte, p *page) {
 // nsearch searches the leaf node on the top of the stack for a key.
 // nsearch() 在栈的顶端leaf node上搜索指定key
 func (c *Cursor) nsearch(key []byte) {
+	log.Printf("Cursor:nsearch(), key:%s", string(key))
 	e := &c.stack[len(c.stack)-1]
 	p, n := e.page, e.node
 
@@ -328,6 +336,7 @@ func (c *Cursor) nsearch(key []byte) {
 
 	// If we have a page then search its leaf elements.
 	inodes := p.leafPageElements()
+	log.Printf("Cursor:nasearch(), inodes:%+v", inodes)
 	index := sort.Search(int(p.count), func(i int) bool {
 		return bytes.Compare(inodes[i].key(), key) != -1
 	})

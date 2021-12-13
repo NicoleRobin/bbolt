@@ -886,6 +886,7 @@ func (db *DB) Info() *Info {
 // 数据库文件切割成大小为pageSize的块，每一块就是一个page，每一块的下标（从0开始）就是pageId
 // 所以boltdb的数据文件的大小必定是pageSize的倍数，linux下默认是4096的倍数
 func (db *DB) page(id pgid) *page {
+	log.Printf("DB:page(), id:%d", id)
 	pos := id * pgid(db.pageSize)
 	return (*page)(unsafe.Pointer(&db.data[pos]))
 }

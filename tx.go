@@ -3,6 +3,7 @@ package bbolt
 import (
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"sort"
 	"strings"
@@ -108,6 +109,7 @@ func (tx *Tx) Bucket(name []byte) *Bucket {
 // Returns an error if the bucket already exists, if the bucket name is blank, or if the bucket name is too long.
 // The bucket instance is only valid for the lifetime of the transaction.
 func (tx *Tx) CreateBucket(name []byte) (*Bucket, error) {
+	log.Printf("Tx:CreateBucket, name:%s, tx.root:%+v, tx.root.bucket:%+v", string(name), tx.root, tx.root.bucket)
 	return tx.root.CreateBucket(name)
 }
 
@@ -610,6 +612,7 @@ func (tx *Tx) writeMeta() error {
 // If page has been written to then a temporary buffered page is returned.
 // page() 返回给定pageId对应page的引用
 func (tx *Tx) page(id pgid) *page {
+	log.Printf("Tx:page(), id:%d", 4)
 	// Check the dirty pages first.
 	if tx.pages != nil {
 		if p, ok := tx.pages[id]; ok {

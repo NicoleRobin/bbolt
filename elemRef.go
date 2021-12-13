@@ -1,5 +1,7 @@
 package bbolt
 
+import "log"
+
 // elemRef represents a reference to an element on a given page/node.
 // elemRef 表示一个给定page/node上的element的引用
 type elemRef struct {
@@ -10,6 +12,7 @@ type elemRef struct {
 
 // isLeaf returns whether the ref is pointing at a leaf page/node.
 func (r *elemRef) isLeaf() bool {
+	log.Printf("elemRef:isLeaf(), r:%+v", r)
 	if r.node != nil {
 		return r.node.isLeaf
 	}

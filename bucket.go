@@ -3,6 +3,7 @@ package bbolt
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"unsafe"
 )
 
@@ -157,6 +158,7 @@ func (b *Bucket) openBucket(value []byte) *Bucket {
 // Returns an error if the key already exists, if the bucket name is blank, or if the bucket name is too long.
 // The bucket instance is only valid for the lifetime of the transaction.
 func (b *Bucket) CreateBucket(key []byte) (*Bucket, error) {
+	log.Printf("Bucket:CreateBucket, key:%s", string(key))
 	if b.tx.db == nil {
 		return nil, ErrTxClosed
 	} else if !b.tx.writable {
@@ -168,6 +170,7 @@ func (b *Bucket) CreateBucket(key []byte) (*Bucket, error) {
 	// Move cursor to correct position.
 	c := b.Cursor()
 	k, _, flags := c.seek(key)
+	log.Printf("key:%s, value:, flags:%x", string(k), flags)
 
 	// Return an error if there is an existing key.
 	if bytes.Equal(key, k) {
@@ -708,6 +711,7 @@ func (b *Bucket) dereference() {
 // Otherwise returns the underlying page.
 // pageNode() 根据pageId返回指定node或者page，node在内存中，page在磁盘上
 func (b *Bucket) pageNode(id pgid) (*page, *node) {
+	log.Printf("Bucket:pageNode(), id:%d", id)
 	// Inline buckets have a fake page embedded in their value so treat them
 	// differently. We'll return the rootNode (if available) or the fake page.
 	if b.root == 0 {
