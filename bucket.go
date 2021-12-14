@@ -388,6 +388,7 @@ func (b *Bucket) NextSequence() (uint64, error) {
 // If the provided function returns an error then the iteration is stopped and
 // the error is returned to the caller. The provided function must not modify
 // the bucket; this will result in undefined behavior.
+// ForEach 对bucket中的每一个kev/value对执行一个函数
 func (b *Bucket) ForEach(fn func(k, v []byte) error) error {
 	if b.tx.db == nil {
 		return ErrTxClosed

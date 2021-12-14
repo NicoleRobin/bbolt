@@ -309,12 +309,14 @@ func Open(path string, mode os.FileMode, options *Options) (*DB, error) {
 	}
 
 	// Mark the database as opened and return.
+	log.Printf("DB:Open(), db.data:%p", db.data)
 	return db, nil
 }
 
 // loadFreelist reads the freelist if it is synced, or reconstructs it
 // by scanning the DB if it is not synced. It assumes there are no
 // concurrent accesses being made to the freelist.
+// loadFreelist 加载freelist
 func (db *DB) loadFreelist() {
 	log.Printf("DB:loadFreelist()")
 	// 使用sync.Once，保证只执行一次
@@ -328,10 +330,15 @@ func (db *DB) loadFreelist() {
 			db.freelist.read(db.page(db.meta().freelist))
 		}
 		db.stats.FreePageN = db.freelist.free_count()
+		for _, pgid := range db.freelist.ids {
+			log.Printf("pgid:%d, %+v", pgid, *db.page(pgid))
+		}
 	})
 }
 
+// hasSyncedFreelist 判断是否已同步freelist
 func (db *DB) hasSyncedFreelist() bool {
+	log.Printf("DB:hasSyncedFreelist(), db.meta().freelist:%+v", db.meta().freelist)
 	return db.meta().freelist != pgidNoFreelist
 }
 
@@ -898,15 +905,16 @@ func (db *DB) page(id pgid) *page {
 }
 
 // pageInBuffer retrieves a page reference from a given byte array based on the current page size.
+// pageInBuffer 根据当前的数据库page size从给定的byte array中获取一个page的引用
 func (db *DB) pageInBuffer(b []byte, id pgid) *page {
-	log.Printf("DB:pageInBuffer(), b:%s, id:%d", string(b), id)
+	log.Printf("DB:pageInBuffer(), b:%p, id:%d", &b, id)
 	return (*page)(unsafe.Pointer(&b[id*pgid(db.pageSize)]))
 }
 
 // meta retrieves the current meta page reference.
 // meta() 从当前meta page中查询meta引用
 func (db *DB) meta() *meta {
-	log.Printf("DB:meta()")
+	log.Printf("DB:meta(), db:%+v", db)
 	// We have to return the meta with the highest txid which doesn't fail
 	// validation. Otherwise, we can cause errors when in fact the database is
 	// in a consistent state. metaA is the one with the higher txid.
@@ -1024,6 +1032,7 @@ func (db *DB) freepages() []pgid {
 			panic(fmt.Sprintf("freepages: failed to get all reachable pages (%v)", e))
 		}
 	}()
+	log.Printf("DB:freepages(), tx.root:%+v", tx.root)
 	tx.checkBucket(&tx.root, reachable, nofreed, ech)
 	close(ech)
 

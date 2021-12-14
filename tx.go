@@ -27,7 +27,8 @@ type Tx struct {
 	managed  bool
 	db       *DB
 	meta     *meta
-	root     Bucket
+	// 每个tx的root都是指向db.meta().root的，pgid均为3
+	root Bucket
 	// 此次事务生成的脏页，尚未写回磁盘
 	pages          map[pgid]*page
 	stats          TxStats
@@ -129,6 +130,7 @@ func (tx *Tx) DeleteBucket(name []byte) error {
 // ForEach executes a function for each bucket in the root.
 // If the provided function returns an error then the iteration is stopped and
 // the error is returned to the caller.
+// ForEach 对于root中的每个bucket执行一个函数
 func (tx *Tx) ForEach(fn func(name []byte, b *Bucket) error) error {
 	return tx.root.ForEach(func(k, v []byte) error {
 		return fn(k, tx.root.Bucket(k))
@@ -460,6 +462,7 @@ func (tx *Tx) check(ch chan error) {
 }
 
 func (tx *Tx) checkBucket(b *Bucket, reachable map[pgid]*page, freed map[pgid]bool, ch chan error) {
+	log.Printf("Tx:checkBucket(), tx:%+v, b:%+v", *tx, *b)
 	// Ignore inline buckets.
 	if b.root == 0 {
 		return
@@ -467,6 +470,7 @@ func (tx *Tx) checkBucket(b *Bucket, reachable map[pgid]*page, freed map[pgid]bo
 
 	// Check every page used by this bucket.
 	b.tx.forEachPage(b.root, 0, func(p *page, _ int) {
+		log.Printf("Tx:checkBucket(), p:%+v", *p)
 		if p.id > tx.meta.pgid {
 			ch <- fmt.Errorf("page %d: out of bounds: %d", int(p.id), int(b.tx.meta.pgid))
 		}
@@ -625,6 +629,7 @@ func (tx *Tx) page(id pgid) *page {
 }
 
 // forEachPage iterates over every page within a given page and executes a function.
+// forEachPage 迭代给定页面中的每个页面，并执行一个函数
 func (tx *Tx) forEachPage(pgid pgid, depth int, fn func(*page, int)) {
 	p := tx.page(pgid)
 

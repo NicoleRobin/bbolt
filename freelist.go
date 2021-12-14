@@ -2,6 +2,7 @@ package bbolt
 
 import (
 	"fmt"
+	"log"
 	"sort"
 	"unsafe"
 )
@@ -262,6 +263,7 @@ func (f *freelist) freed(pgid pgid) bool {
 
 // read initializes the freelist from a freelist page.
 func (f *freelist) read(p *page) {
+	log.Printf("freelist:read(), p:%+v", *p)
 	if (p.flags & freelistPageFlag) == 0 {
 		panic(fmt.Sprintf("invalid freelist page: %d, page type is %s", p.id, p.typ()))
 	}
@@ -297,6 +299,7 @@ func (f *freelist) read(p *page) {
 
 // arrayReadIDs initializes the freelist from a given list of ids.
 func (f *freelist) arrayReadIDs(ids []pgid) {
+	log.Printf("freelist:arrayReadIDs(), ids:%+v", ids)
 	f.ids = ids
 	f.reindex()
 }

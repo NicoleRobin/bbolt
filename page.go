@@ -53,6 +53,7 @@ func (p *page) typ() string {
 // meta returns a pointer to the metadata section of the page.
 // meta() 返回指向page中的meta段的指针
 func (p *page) meta() *meta {
+	log.Printf("page:meta(), p:%+v", p)
 	return (*meta)(unsafeAdd(unsafe.Pointer(p), unsafe.Sizeof(*p)))
 }
 
