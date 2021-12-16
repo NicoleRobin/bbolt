@@ -351,6 +351,7 @@ func (c *Cursor) nsearch(key []byte) {
 }
 
 // keyValue returns the key and value of the current leaf element.
+// keyValue 返回当前leaf element的key和value
 func (c *Cursor) keyValue() ([]byte, []byte, uint32) {
 	ref := &c.stack[len(c.stack)-1]
 

@@ -17,11 +17,14 @@ type node struct {
 	key        []byte
 	pgid       pgid
 	parent     *node
-	children   nodes
-	inodes     inodes
+	// 该node的子node
+	children nodes
+	// 该node中的key/value对
+	inodes inodes
 }
 
 // root returns the top-level node this node is attached to.
+// root 返回该node所属的最顶层node,递归获取
 func (n *node) root() *node {
 	if n.parent == nil {
 		return n
@@ -192,6 +195,7 @@ func (n *node) read(p *page) {
 }
 
 // write writes the items onto one or more pages.
+// write 将node的items写入到一个或者多个page中
 func (n *node) write(p *page) {
 	// Initialize page.
 	if n.isLeaf {
@@ -212,6 +216,7 @@ func (n *node) write(p *page) {
 
 	// Loop over each item and write it to the page.
 	// off tracks the offset into p of the start of the next data.
+	// 先预留出所有pageElement占用的空间,他们使用的key/value从这里往后排
 	off := unsafe.Sizeof(*p) + n.pageElementSize()*uintptr(len(n.inodes))
 	for i, item := range n.inodes {
 		_assert(len(item.key) > 0, "write: zero-length inode key")

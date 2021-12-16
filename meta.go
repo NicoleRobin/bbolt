@@ -13,6 +13,7 @@ type meta struct {
 	flags    uint32
 	root     bucket
 	freelist pgid
+	// 记录下一个要分配的page id
 	pgid     pgid
 	txid     txid
 	checksum uint64

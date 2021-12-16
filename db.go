@@ -774,6 +774,7 @@ func (db *DB) Update(fn func(*Tx) error) error {
 //
 // Attempting to manually rollback within the function will cause a panic.
 func (db *DB) View(fn func(*Tx) error) error {
+	log.Printf("DB:View(), fn:%+v", &fn)
 	t, err := db.Begin(false)
 	if err != nil {
 		return err

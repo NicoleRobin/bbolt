@@ -53,6 +53,7 @@ type bucket struct {
 }
 
 // newBucket returns a new bucket associated with a transaction.
+// newBucket 返回一个和事务关联的新的Bucket
 func newBucket(tx *Tx) Bucket {
 	var b = Bucket{tx: tx, FillPercent: DefaultFillPercent}
 	if tx.writable {
@@ -265,6 +266,7 @@ func (b *Bucket) DeleteBucket(key []byte) error {
 // Returns a nil value if the key does not exist or if the key is a nested bucket.
 // The returned value is only valid for the life of the transaction.
 func (b *Bucket) Get(key []byte) []byte {
+	log.Printf("Bucket:Get(), b:%+v, key:%s", *b, string(key))
 	k, v, flags := b.Cursor().seek(key)
 
 	// Return nil if this is a bucket.
@@ -638,6 +640,7 @@ func (b *Bucket) write() []byte {
 }
 
 // rebalance attempts to balance all nodes.
+// rebalance 尝试重平衡所有节点
 func (b *Bucket) rebalance() {
 	for _, n := range b.nodes {
 		n.rebalance()
@@ -648,6 +651,7 @@ func (b *Bucket) rebalance() {
 }
 
 // node creates a node from a page and associates it with a given parent.
+// node 从一个page创建一个node并用一个给定的parent和它关联
 func (b *Bucket) node(pgid pgid, parent *node) *node {
 	_assert(b.nodes != nil, "nodes map expected")
 

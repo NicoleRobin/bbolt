@@ -23,14 +23,12 @@ type txid uint64
 // are using them. A long running read transaction can cause the database to
 // quickly grow.
 type Tx struct {
-	writable bool
-	managed  bool
-	db       *DB
-	meta     *meta
-	// 每个tx的root都是指向db.meta().root的，pgid均为3
-	root Bucket
-	// 此次事务生成的脏页，尚未写回磁盘
-	pages          map[pgid]*page
+	writable       bool // 是否可写
+	managed        bool
+	db             *DB // 指向db实例
+	meta           *meta
+	root           Bucket         // 每个tx的root都是指向db.meta().root的，pgid均为3
+	pages          map[pgid]*page // 此次事务生成的脏页，尚未写回磁盘
 	stats          TxStats
 	commitHandlers []func()
 
@@ -76,11 +74,13 @@ func (tx *Tx) DB() *DB {
 }
 
 // Size returns current database size in bytes as seen by this transaction.
+// Size 返回该事务看到的该数据库的大小
 func (tx *Tx) Size() int64 {
 	return int64(tx.meta.pgid) * int64(tx.db.pageSize)
 }
 
 // Writable returns whether the transaction can perform write operations.
+// Writable 返回该事务是否能够执行写操作
 func (tx *Tx) Writable() bool {
 	return tx.writable
 }
@@ -89,6 +89,7 @@ func (tx *Tx) Writable() bool {
 // All items in the cursor will return a nil value because all root bucket keys point to buckets.
 // The cursor is only valid as long as the transaction is open.
 // Do not use a cursor after the transaction is closed.
+// Cursor 创建一个和root bucket关联的cursor
 func (tx *Tx) Cursor() *Cursor {
 	return tx.root.Cursor()
 }
@@ -138,6 +139,7 @@ func (tx *Tx) ForEach(fn func(name []byte, b *Bucket) error) error {
 }
 
 // OnCommit adds a handler function to be executed after the transaction successfully commits.
+// OnCommit 添加一个handler到tx.commitHandlers
 func (tx *Tx) OnCommit(fn func()) {
 	tx.commitHandlers = append(tx.commitHandlers, fn)
 }
@@ -146,6 +148,7 @@ func (tx *Tx) OnCommit(fn func()) {
 // Returns an error if a disk write error occurs, or if Commit is
 // called on a read-only transaction.
 func (tx *Tx) Commit() error {
+	log.Printf("Tx:Commit(), t:%+v", tx)
 	_assert(!tx.managed, "managed tx commit not allowed")
 	if tx.db == nil {
 		return ErrTxClosed
